@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Coach Alex">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<title>Coach Alex</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#f0f0f0;overflow:hidden;}
+:root{--bg:#0a0a0a;--s1:#1c1c1c;--s2:#2a2a2a;--acc:#3b82f6;--grn:#22c55e;--yel:#f59e0b;--red:#ef4444;--txt:#f0f0f0;--txt2:#999;--bdr:rgba(255,255,255,0.1);}
+
+/* PAGE SYSTEM */
+.page{position:fixed;inset:0;display:none;flex-direction:column;overflow:hidden;background:var(--bg);}
+.page.show{display:flex;}
+
+/* ── SPLASH ── */
+#pg-splash{align-items:center;justify-content:center;gap:12px;padding:40px 32px;}
+.sp-icon{font-size:80px;line-height:1;}
+.sp-title{font-size:36px;font-weight:700;letter-spacing:-1px;}
+.sp-sub{font-size:16px;color:var(--txt2);margin-bottom:32px;}
+.sp-btn{width:100%;padding:20px;background:var(--acc);color:#fff;border:none;border-radius:18px;font-size:18px;font-weight:700;cursor:pointer;letter-spacing:-0.3px;}
+.sp-note{font-size:12px;color:var(--txt2);margin-top:16px;text-align:center;line-height:1.7;}
+
+/* ── ONBOARDING ── */
+#pg-onboard{padding:0;}
+.ob-inner{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:48px 28px 24px;}
+.ob-dots{display:flex;gap:8px;margin-bottom:36px;}
+.ob-dot{height:4px;flex:1;border-radius:4px;background:var(--s2);}
+.ob-dot.on{background:var(--acc);}
+.ob-step{display:none;flex-direction:column;}
+.ob-step.show{display:flex;}
+.ob-emoji{font-size:52px;margin-bottom:16px;}
+.ob-q{font-size:26px;font-weight:700;letter-spacing:-0.5px;line-height:1.3;margin-bottom:8px;}
+.ob-hint{font-size:14px;color:var(--txt2);margin-bottom:28px;line-height:1.6;}
+.ob-opts{display:flex;flex-direction:column;gap:12px;}
+.ob-opt{padding:18px 16px;background:var(--s1);border:2px solid var(--bdr);border-radius:16px;display:flex;align-items:center;gap:14px;cursor:pointer;}
+.ob-opt.sel{border-color:var(--acc);background:rgba(59,130,246,0.12);}
+.ob-opt-icon{font-size:26px;flex-shrink:0;}
+.ob-opt-label{font-size:16px;font-weight:500;}
+.ob-opt-desc{font-size:13px;color:var(--txt2);margin-top:2px;}
+.ob-foot{padding:20px 28px 40px;flex-shrink:0;}
+.ob-next{width:100%;padding:20px;background:var(--acc);color:#fff;border:none;border-radius:18px;font-size:18px;font-weight:700;cursor:pointer;opacity:0.35;}
+.ob-next.on{opacity:1;}
+
+/* ── MAIN ── */
+#pg-main{padding-top:env(safe-area-inset-top);}
+.main-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:90px;}
+
+/* CAM */
+.cam-wrap{position:relative;background:#000;width:100%;aspect-ratio:16/9;overflow:hidden;flex-shrink:0;}
+.cam-wrap video,.cam-wrap canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.cam-wrap canvas{z-index:2;}
+.cam-hud-tl{position:absolute;top:10px;left:10px;z-index:5;display:flex;flex-direction:column;gap:6px;}
+.cam-hud-tr{position:absolute;top:10px;right:10px;z-index:5;display:flex;flex-direction:column;gap:6px;align-items:flex-end;}
+.hbadge{padding:5px 10px;border-radius:20px;font-size:12px;font-weight:700;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+#hb-live{background:rgba(239,68,68,0.85);color:#fff;display:none;}
+#hb-ex{background:rgba(0,0,0,0.65);color:#fff;}
+#hb-score{background:rgba(0,0,0,0.65);color:#fff;display:none;}
+#hb-reps{background:rgba(59,130,246,0.85);color:#fff;display:none;}
+.cam-overlay{position:absolute;inset:0;z-index:10;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;}
+.cam-overlay p{color:rgba(255,255,255,0.75);font-size:15px;text-align:center;line-height:1.6;}
+.cam-start-btn{padding:18px 36px;background:var(--acc);color:#fff;border:none;border-radius:16px;font-size:17px;font-weight:700;cursor:pointer;}
+
+/* EXERCISE CHIPS */
+.ex-section{padding:14px 16px 0;}
+.ex-row{display:flex;gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none;}
+.ex-row::-webkit-scrollbar{display:none;}
+.ex-chip{flex-shrink:0;padding:12px 18px;background:var(--s1);border:2px solid var(--bdr);border-radius:30px;font-size:14px;font-weight:500;color:var(--txt2);cursor:pointer;white-space:nowrap;}
+.ex-chip.on{border-color:var(--acc);color:var(--acc);background:rgba(59,130,246,0.12);}
+
+/* METRICS */
+.metrics-section{padding:14px 16px 0;}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.mc{background:var(--s1);border-radius:12px;padding:12px 8px;text-align:center;border:1px solid var(--bdr);}
+.mc-val{font-size:18px;font-weight:700;}
+.mc-val.g{color:var(--grn);}
+.mc-val.w{color:var(--yel);}
+.mc-val.b{color:var(--red);}
+.mc-lbl{font-size:11px;color:var(--txt2);margin-top:3px;}
+
+/* FEEDBACK */
+.fb-section{padding:14px 16px 0;}
+.fb-card{background:var(--s1);border-radius:16px;border:1px solid var(--bdr);overflow:hidden;}
+.fb-top{padding:14px 16px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px;}
+.fb-top-title{font-size:15px;font-weight:600;flex:1;}
+.fb-analyze-btn{padding:10px 18px;background:var(--acc);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;}
+.fb-analyze-btn:disabled{opacity:0.4;}
+.fb-msgs{padding:14px 16px;display:flex;flex-direction:column;gap:10px;max-height:180px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.fbm{font-size:14px;line-height:1.6;}
+.fbm.coach{background:var(--s2);border-left:3px solid var(--acc);padding:12px;border-radius:10px;color:var(--txt);}
+.fbm.sys{color:var(--txt2);font-style:italic;font-size:13px;}
+
+/* ── CHAT ── */
+#pg-chat{padding-top:env(safe-area-inset-top);}
+.chat-hdr{padding:16px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px;background:var(--s1);flex-shrink:0;}
+.chat-back{background:none;border:none;color:var(--txt);font-size:28px;cursor:pointer;padding:0 8px 0 0;line-height:1;}
+.chat-av{width:42px;height:42px;border-radius:50%;background:rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid var(--acc);flex-shrink:0;}
+.chat-hdr-name{font-size:16px;font-weight:600;}
+.chat-hdr-sub{font-size:12px;color:var(--txt2);}
+.voice-bar{padding:10px 16px;background:var(--s1);border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.voice-bar span{font-size:13px;color:var(--txt2);flex:1;}
+.tog{position:relative;width:46px;height:26px;flex-shrink:0;}
+.tog input{opacity:0;width:0;height:0;position:absolute;}
+.tog-sl{position:absolute;inset:0;background:var(--s2);border-radius:26px;cursor:pointer;transition:.2s;border:1px solid var(--bdr);}
+.tog-sl:before{content:'';position:absolute;width:20px;height:20px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.2s;}
+.tog input:checked+.tog-sl{background:var(--acc);}
+.tog input:checked+.tog-sl:before{transform:translateX(20px);}
+.chat-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:12px;}
+.cm{max-width:85%;display:flex;flex-direction:column;}
+.cm.u{align-self:flex-end;}
+.cm.a{align-self:flex-start;}
+.cm-b{padding:14px 16px;font-size:15px;line-height:1.6;}
+.cm.u .cm-b{background:var(--acc);color:#fff;border-radius:20px 20px 4px 20px;}
+.cm.a .cm-b{background:var(--s1);color:var(--txt);border-radius:20px 20px 20px 4px;border:1px solid var(--bdr);}
+.chat-inp-row{padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(--s1);border-top:1px solid var(--bdr);display:flex;gap:10px;align-items:flex-end;flex-shrink:0;}
+.chat-inp{flex:1;background:var(--s2);border:1.5px solid var(--bdr);border-radius:24px;padding:13px 18px;font-size:16px;color:var(--txt);font-family:inherit;resize:none;max-height:100px;outline:none;line-height:1.5;}
+.mic-btn{width:48px;height:48px;border-radius:50%;background:var(--s2);border:2px solid var(--bdr);color:var(--txt2);font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.mic-btn.live{background:var(--red);border-color:var(--red);color:#fff;animation:mpluse 1s infinite;}
+@keyframes mpluse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+.send-btn{width:48px;height:48px;border-radius:50%;background:var(--acc);border:none;color:#fff;font-size:22px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.send-btn:disabled{opacity:0.4;}
+
+/* ── PLAN ── */
+#pg-plan{padding-top:env(safe-area-inset-top);}
+.plan-hdr{padding:16px;border-bottom:1px solid var(--bdr);background:var(--s1);display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.plan-back{background:none;border:none;color:var(--txt);font-size:28px;cursor:pointer;line-height:1;}
+.plan-hdr h2{font-size:18px;font-weight:600;}
+.plan-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 32px;}
+.plan-loading{text-align:center;padding:60px 20px;color:var(--txt2);font-size:16px;}
+.plan-day{background:var(--s1);border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid var(--bdr);}
+.plan-day h3{font-size:15px;font-weight:600;color:var(--acc);margin-bottom:10px;}
+.plan-day p{font-size:14px;color:var(--txt);line-height:1.8;white-space:pre-line;}
+
+/* ── BOTTOM NAV ── */
+#bnav{position:fixed;bottom:0;left:0;right:0;z-index:999;background:var(--s1);border-top:1px solid var(--bdr);display:none;padding-bottom:env(safe-area-inset-bottom);}
+#bnav.show{display:flex;}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 0 10px;cursor:pointer;border:none;background:none;color:var(--txt2);font-size:11px;font-family:inherit;}
+.bn .bni{font-size:26px;line-height:1;}
+.bn.on{color:var(--acc);}
+
+/* TYPING */
+.dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--txt2);margin:0 2px;animation:db 1s infinite;}
+.dots span:nth-child(2){animation-delay:.2s;}
+.dots span:nth-child(3){animation-delay:.4s;}
+@keyframes db{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="pg-splash" class="page show">
+  <div class="sp-icon">💪</div>
+  <div class="sp-title">Coach Alex</div>
+  <div class="sp-sub">Your AI personal trainer</div>
+  <button class="sp-btn" id="sp-btn">Get started</button>
+  <p class="sp-note">Camera is used only on your device.<br>Nothing is recorded or stored.</p>
+</div>
+
+<!-- ONBOARDING -->
+<div id="pg-onboard" class="page">
+  <div class="ob-inner">
+    <div class="ob-dots">
+      <div class="ob-dot on" id="d1"></div>
+      <div class="ob-dot" id="d2"></div>
+      <div class="ob-dot" id="d3"></div>
+    </div>
+    <!-- Step 1 -->
+    <div class="ob-step show" id="s1">
+      <div class="ob-emoji">🎯</div>
+      <div class="ob-q">What is your main goal?</div>
+      <div class="ob-hint">Coach Alex will build your plan around this.</div>
+      <div class="ob-opts">
+        <div class="ob-opt" id="g-lw"><span class="ob-opt-icon">🔥</span><div><div class="ob-opt-label">Lose weight</div><div class="ob-opt-desc">Burn fat and get leaner</div></div></div>
+        <div class="ob-opt" id="g-bm"><span class="ob-opt-icon">💪</span><div><div class="ob-opt-label">Build muscle</div><div class="ob-opt-desc">Get stronger and bigger</div></div></div>
+        <div class="ob-opt" id="g-gf"><span class="ob-opt-icon">⚡</span><div><div class="ob-opt-label">Get fit and healthy</div><div class="ob-opt-desc">Overall fitness and energy</div></div></div>
+        <div class="ob-opt" id="g-bg"><span class="ob-opt-icon">🌱</span><div><div class="ob-opt-label">Complete beginner</div><div class="ob-opt-desc">Start from zero safely</div></div></div>
+      </div>
+    </div>
+    <!-- Step 2 -->
+    <div class="ob-step" id="s2">
+      <div class="ob-emoji">🏃</div>
+      <div class="ob-q">How active are you now?</div>
+      <div class="ob-hint">Be honest — Coach Alex starts you at the right level.</div>
+      <div class="ob-opts">
+        <div class="ob-opt" id="l-na"><span class="ob-opt-icon">🛋️</span><div><div class="ob-opt-label">Not very active</div><div class="ob-opt-desc">Little or no exercise</div></div></div>
+        <div class="ob-opt" id="l-sa"><span class="ob-opt-icon">🚶</span><div><div class="ob-opt-label">Somewhat active</div><div class="ob-opt-desc">Light activity 1-2x per week</div></div></div>
+        <div class="ob-opt" id="l-ma"><span class="ob-opt-icon">🏋️</span><div><div class="ob-opt-label">Moderately active</div><div class="ob-opt-desc">Working out 3-4x per week</div></div></div>
+      </div>
+    </div>
+    <!-- Step 3 -->
+    <div class="ob-step" id="s3">
+      <div class="ob-emoji">🏠</div>
+      <div class="ob-q">Where will you train?</div>
+      <div class="ob-hint">Your plan is built around what you have access to.</div>
+      <div class="ob-opts">
+        <div class="ob-opt" id="loc-gym"><span class="ob-opt-icon">🏢</span><div><div class="ob-opt-label">At the gym</div><div class="ob-opt-desc">Full equipment available</div></div></div>
+        <div class="ob-opt" id="loc-home"><span class="ob-opt-icon">🏡</span><div><div class="ob-opt-label">At home</div><div class="ob-opt-desc">Bodyweight or minimal equipment</div></div></div>
+        <div class="ob-opt" id="loc-both"><span class="ob-opt-icon">🔄</span><div><div class="ob-opt-label">Both</div><div class="ob-opt-desc">Mix of gym and home</div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="ob-foot">
+    <button class="ob-next" id="ob-next">Continue</button>
+  </div>
+</div>
+
+<!-- MAIN TRAIN -->
+<div id="pg-main" class="page">
+  <div class="main-scroll">
+    <div class="cam-wrap">
+      <video id="vid" autoplay muted playsinline></video>
+      <canvas id="cvs"></canvas>
+      <div class="cam-hud-tl">
+        <span class="hbadge" id="hb-live">🔴 LIVE</span>
+        <span class="hbadge" id="hb-ex">Select exercise</span>
+      </div>
+      <div class="cam-hud-tr">
+        <span class="hbadge" id="hb-score"></span>
+        <span class="hbadge" id="hb-reps"></span>
+      </div>
+      <div class="cam-overlay" id="cam-ov">
+        <div style="font-size:52px">📷</div>
+        <p>Tap below to start camera. Stand 6–8 feet back so your full body is visible.</p>
+        <button class="cam-start-btn" id="cam-btn">▶ Start camera</button>
+      </div>
+    </div>
+
+    <div class="ex-section">
+      <div class="ex-row">
+        <div class="ex-chip on" data-ex="squat">🦵 Squat</div>
+        <div class="ex-chip" data-ex="pushup">💪 Push-up</div>
+        <div class="ex-chip" data-ex="deadlift">🏋️ Deadlift</div>
+        <div class="ex-chip" data-ex="plank">🧘 Plank</div>
+        <div class="ex-chip" data-ex="lunge">🚶 Lunge</div>
+        <div class="ex-chip" data-ex="press">🙌 Shoulder press</div>
+      </div>
+    </div>
+
+    <div class="metrics-section">
+      <div class="metrics-grid">
+        <div class="mc"><div class="mc-val" id="mv-knee">—</div><div class="mc-lbl">Knee</div></div>
+        <div class="mc"><div class="mc-val" id="mv-hip">—</div><div class="mc-lbl">Hip</div></div>
+        <div class="mc"><div class="mc-val" id="mv-back">—</div><div class="mc-lbl">Back</div></div>
+        <div class="mc"><div class="mc-val" id="mv-reps">0</div><div class="mc-lbl">Reps</div></div>
+      </div>
+    </div>
+
+    <div class="fb-section">
+      <div class="fb-card">
+        <div class="fb-top">
+          <span class="fb-top-title">💬 Coach Alex</span>
+          <button class="fb-analyze-btn" id="fb-btn" disabled>Analyze form</button>
+        </div>
+        <div class="fb-msgs" id="fb-msgs">
+          <div class="fbm sys">Start the camera and select an exercise to get live coaching.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div id="pg-chat" class="page">
+  <div class="chat-hdr">
+    <button class="chat-back" id="chat-back">←</button>
+    <div class="chat-av">💪</div>
+    <div>
+      <div class="chat-hdr-name">Coach Alex</div>
+      <div class="chat-hdr-sub">Ask me anything about fitness</div>
+    </div>
+  </div>
+  <div class="voice-bar">
+    <span>🔊 Speak replies aloud</span>
+    <label class="tog"><input type="checkbox" id="voice-tog" checked><span class="tog-sl"></span></label>
+  </div>
+  <div class="chat-msgs" id="chat-msgs"></div>
+  <div class="chat-inp-row">
+    <textarea class="chat-inp" id="chat-inp" placeholder="Ask or tap 🎤 to speak..." rows="1"></textarea>
+    <button class="mic-btn" id="mic-btn">🎤</button>
+    <button class="send-btn" id="send-btn" disabled>↑</button>
+  </div>
+</div>
+
+<!-- PLAN -->
+<div id="pg-plan" class="page">
+  <div class="plan-hdr">
+    <button class="plan-back" id="plan-back">←</button>
+    <h2>Your weekly plan</h2>
+  </div>
+  <div class="plan-body" id="plan-body">
+    <div class="plan-loading" id="plan-load">Generating your personalized plan...</div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div id="bnav">
+  <button class="bn on" id="bn-train" data-pg="main">
+    <span class="bni">📷</span>Train
+  </button>
+  <button class="bn" id="bn-chat" data-pg="chat">
+    <span class="bni">💬</span>Chat
+  </button>
+  <button class="bn" id="bn-plan" data-pg="plan">
+    <span class="bni">📋</span>My Plan
+  </button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js"></script>
+<script>
+const API = '/api/chat';
+const MDL = 'gemini';
+
+let profile = {};
+let obStep = 1;
+let obAns = {};
+let curEx = 'squat';
+let pose = null;
+let reps = 0;
+let repSt = 'up';
+let camOn = false;
+let chatHist = [];
+let chatReady = false;
+let planDone = false;
+let angles = {};
+
+// ── UTILS ──
+function show(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('show'));
+  document.getElementById('pg-' + id).classList.add('show');
+}
+function nav(id) {
+  document.querySelectorAll('.bn').forEach(b => b.classList.remove('on'));
+  document.getElementById('bn-' + id).classList.add('on');
+}
+function speak(txt) {
+  if (!document.getElementById('voice-tog').checked) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(txt.replace(/[\u{1F300}-\u{1FFFF}]/gu,''));
+  u.rate = 0.95; u.pitch = 1.1; u.volume = 1;
+  const vs = speechSynthesis.getVoices();
+  // Try Indian English female voices first
+  const pref = 
+    vs.find(v => v.lang === 'en-IN' && v.name.toLowerCase().includes('female')) ||
+    vs.find(v => v.lang === 'en-IN') ||
+    vs.find(v => v.name.includes('Raveena')) ||
+    vs.find(v => v.name.includes('Veena')) ||
+    vs.find(v => v.name.includes('Heera')) ||
+    vs.find(v => v.lang === 'en-GB' && /female|woman/i.test(v.name)) ||
+    vs.find(v => v.lang === 'en-US' && /zira|susan|samantha|karen/i.test(v.name)) ||
+    vs.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female')) ||
+    vs.find(v => v.lang.startsWith('en'));
+  if (pref) u.voice = pref;
+  u.lang = 'en-IN';
+  speechSynthesis.speak(u);
+}
+speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+
+// ── SPLASH ──
+document.getElementById('sp-btn').addEventListener('click', () => {
+  show('onboard');
+});
+
+// ── ONBOARDING ──
+const obMap = {
+  's1': { 'g-lw':'lose_weight','g-bm':'build_muscle','g-gf':'get_fit','g-bg':'beginner' },
+  's2': { 'l-na':'not_active','l-sa':'some','l-ma':'moderate' },
+  's3': { 'loc-gym':'gym','loc-home':'home','loc-both':'both' }
+};
+const obKeys = { 's1':'goal', 's2':'level', 's3':'location' };
+
+document.querySelectorAll('.ob-opt').forEach(el => {
+  el.addEventListener('click', () => {
+    const step = 's' + obStep;
+    const key = obKeys[step];
+    const val = obMap[step][el.id];
+    if (!val) return;
+    el.closest('.ob-opts').querySelectorAll('.ob-opt').forEach(o => o.classList.remove('sel'));
+    el.classList.add('sel');
+    obAns[key] = val;
+    document.getElementById('ob-next').classList.add('on');
+  });
+});
+
+document.getElementById('ob-next').addEventListener('click', () => {
+  if (!document.getElementById('ob-next').classList.contains('on')) return;
+  if (obStep < 3) {
+    document.getElementById('s'+obStep).classList.remove('show');
+    obStep++;
+    document.getElementById('s'+obStep).classList.add('show');
+    document.getElementById('d'+obStep).classList.add('on');
+    document.getElementById('ob-next').classList.remove('on');
+    if (obStep === 3) document.getElementById('ob-next').textContent = 'Start training 💪';
+  } else {
+    profile = {...obAns};
+    localStorage.setItem('ca_profile', JSON.stringify(profile));
+    document.getElementById('bnav').classList.add('show');
+    show('main');
+  }
+});
+
+// ── EXERCISE SELECT ──
+document.querySelectorAll('.ex-chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.ex-chip').forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    curEx = c.dataset.ex;
+    reps = 0; repSt = 'up';
+    document.getElementById('mv-reps').textContent = '0';
+    document.getElementById('hb-ex').textContent = c.textContent.trim();
+    addFb('sys', 'Exercise set to ' + c.textContent.trim() + '. Get into position!');
+  });
+});
+
+// ── CAMERA ──
+document.getElementById('cam-btn').addEventListener('click', startCam);
+async function startCam() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width:{ideal:1280}, height:{ideal:720} } });
+    const vid = document.getElementById('vid');
+    vid.srcObject = stream;
+    await vid.play();
+    document.getElementById('cam-ov').style.display = 'none';
+    document.getElementById('hb-live').style.display = 'block';
+    document.getElementById('fb-btn').disabled = false;
+    camOn = true;
+    initPose(vid);
+    addFb('sys', 'Camera on! Step back so your full body is visible, then tap Analyze form.');
+  } catch(e) {
+    alert('Camera blocked. Please allow camera access in your browser settings and try again.');
+  }
+}
+
+function initPose(vid) {
+  const cvs = document.getElementById('cvs');
+  const ctx = cvs.getContext('2d');
+  const mp = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${f}` });
+  mp.setOptions({ modelComplexity:1, smoothLandmarks:true, enableSegmentation:false, minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
+  mp.onResults(res => {
+    cvs.width = vid.videoWidth || 640;
+    cvs.height = vid.videoHeight || 480;
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    if (res.poseLandmarks) {
+      pose = res.poseLandmarks;
+      drawConnectors(ctx, pose, POSE_CONNECTIONS, {color:'#3b82f6',lineWidth:2});
+      drawLandmarks(ctx, pose, {color:'#fff',lineWidth:1,radius:4});
+      calcMetrics(pose);
+    }
+  });
+  const cam = new Camera(vid, { onFrame: async () => { await mp.send({image:vid}); }, width:640, height:480 });
+  cam.start();
+}
+
+function ang(a,b,c) {
+  const ab={x:a.x-b.x,y:a.y-b.y}, cb={x:c.x-b.x,y:c.y-b.y};
+  const d=ab.x*cb.x+ab.y*cb.y, m=Math.sqrt(ab.x**2+ab.y**2)*Math.sqrt(cb.x**2+cb.y**2);
+  return m===0?0:Math.round(Math.acos(Math.max(-1,Math.min(1,d/m)))*180/Math.PI);
+}
+function cls(v,g,w){return v>=g[0]&&v<=g[1]?'g':v>=w[0]&&v<=w[1]?'w':'b';}
+
+function calcMetrics(lm) {
+  const knee=ang(lm[23],lm[25],lm[27]);
+  const hip=ang(lm[11],lm[23],lm[25]);
+  const back=ang(lm[11],lm[23],lm[25]);
+  angles={knee,hip,back};
+  const mk=document.getElementById('mv-knee'), mh=document.getElementById('mv-hip'), mb=document.getElementById('mv-back');
+  mk.textContent=knee+'°'; mh.textContent=hip+'°'; mb.textContent=back+'°';
+  if(curEx==='squat'){mk.className='mc-val '+cls(knee,[80,120],[60,150]);mh.className='mc-val '+cls(hip,[45,80],[35,100]);countRep(knee,100,150);}
+  else if(curEx==='pushup'){mk.className='mc-val '+cls(knee,[80,105],[70,120]);mb.className='mc-val '+cls(back,[165,180],[155,180]);countRep(knee,95,155);}
+  else if(curEx==='plank'){mb.className='mc-val '+cls(back,[168,180],[155,180]);mh.className='mc-val '+cls(hip,[168,180],[155,180]);}
+  else if(curEx==='deadlift'){mh.className='mc-val '+cls(hip,[45,90],[35,110]);mb.className='mc-val '+cls(back,[155,180],[140,180]);countRep(hip,90,150);}
+  const sc=score();
+  const sb=document.getElementById('hb-score');
+  sb.style.display='block'; sb.textContent='Form '+sc+'%';
+  sb.style.background=sc>75?'rgba(34,197,94,.85)':sc>50?'rgba(245,158,11,.85)':'rgba(239,68,68,.85)';
+  const rb=document.getElementById('hb-reps'); rb.style.display='block'; rb.textContent=reps+' reps';
+}
+function countRep(v,dn,up){if(v<dn&&repSt==='up'){repSt='down';}else if(v>up&&repSt==='down'){repSt='up';reps++;document.getElementById('mv-reps').textContent=reps;}}
+function score(){const{knee,hip,back}=angles;let s=100;if(curEx==='squat'){if(knee>150)s-=30;else if(knee>130)s-=15;if(hip>90)s-=20;}else if(curEx==='pushup'){if(back<155)s-=30;if(knee>120)s-=20;}else if(curEx==='plank'){if(back<160)s-=40;if(hip<160)s-=30;}else if(curEx==='deadlift'){if(back<150)s-=40;if(hip>110)s-=20;}return Math.max(0,s);}
+
+// ── FEEDBACK ──
+function addFb(type, txt) {
+  const box=document.getElementById('fb-msgs');
+  const d=document.createElement('div'); d.className='fbm '+type; d.textContent=txt;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+  if(type==='coach') speak(txt.replace('💪 ',''));
+}
+
+document.getElementById('fb-btn').addEventListener('click', analyzeForm);
+async function analyzeForm() {
+  if (!pose) { addFb('sys','No pose detected. Make sure your full body is in frame.'); return; }
+  const btn=document.getElementById('fb-btn'); btn.disabled=true; btn.textContent='Analyzing...';
+  const {knee,hip,back}=angles; const sc=score();
+  const exNames={squat:'Squat',pushup:'Push-up',deadlift:'Deadlift',plank:'Plank',lunge:'Lunge',press:'Shoulder press'};
+  const d=document.createElement('div'); d.className='fbm sys'; d.innerHTML='Analyzing <span class="dots"><span></span><span></span><span></span></span>';
+  document.getElementById('fb-msgs').appendChild(d);
+  document.getElementById('fb-msgs').scrollTop=9999;
+  try {
+    const sys=`You are Coach Alex, a real-time AI trainer. Analyze pose data and give 2-3 sentences of specific corrections. Be direct and encouraging. Ideal angles: SQUAT knee 80-110°, hip 45-70°. PUSHUP elbow 80-100°, body straight 170-180°. DEADLIFT hip 45-90°, back 160-180°. PLANK back+hip 170-180°. End with one motivating line.`;
+    const msg=`Exercise: ${exNames[curEx]}. Knee: ${knee}°, Hip: ${hip}°, Back: ${back}°, Form score: ${sc}%, Reps done: ${reps}.`;
+    const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MDL,max_tokens:200,system:sys,messages:[{role:'user',content:msg}]})});
+    const data=await res.json(); d.remove();
+    addFb('coach','💪 '+(data.content?.[0]?.text||'Keep going!'));
+  } catch(e){d.remove();addFb('sys','Connection error. Try again.');}
+  btn.disabled=false; btn.textContent='Analyze form';
+}
+
+// ── BOTTOM NAV ──
+document.querySelectorAll('.bn').forEach(b => {
+  b.addEventListener('click', () => {
+    const pg = b.dataset.pg;
+    nav(pg);
+    show(pg);
+    if (pg==='chat' && !chatReady) initChat();
+    if (pg==='plan' && !planDone) loadPlan();
+  });
+});
+document.getElementById('chat-back').addEventListener('click', ()=>{ nav('main'); show('main'); });
+document.getElementById('plan-back').addEventListener('click', ()=>{ nav('main'); show('main'); });
+
+// ── CHAT ──
+function sysPrompt() {
+  const g={lose_weight:'lose weight',build_muscle:'build muscle',get_fit:'get fit',beginner:'start fitness from scratch'};
+  const lv={not_active:'not currently active',some:'lightly active',moderate:'moderately active'};
+  const loc={gym:'at the gym',home:'at home',both:'at gym and home'};
+  return `You are Coach Alex, a warm and motivating AI personal trainer. User profile: Goal: ${g[profile.goal]||'get fit'}, Level: ${lv[profile.level]||'beginner'}, Trains: ${loc[profile.location]||'at the gym'}. Keep replies SHORT (3-5 sentences). Be friendly, direct, and encouraging. Use simple language.`;
+}
+function initChat() {
+  chatReady=true;
+  const gr=`Hey! I am Coach Alex. I know you want to ${({lose_weight:'lose weight',build_muscle:'build muscle',get_fit:'get fit',beginner:'start your fitness journey'})[profile.goal]||'get fit'} and train ${({gym:'at the gym',home:'at home',both:'at gym and home'})[profile.location]||'at the gym'}. Ask me anything!`;
+  addChat('a', gr); speak(gr);
+}
+function addChat(role, txt) {
+  const box=document.getElementById('chat-msgs');
+  const d=document.createElement('div'); d.className='cm '+role;
+  const b=document.createElement('div'); b.className='cm-b'; b.textContent=txt;
+  d.appendChild(b); box.appendChild(d); box.scrollTop=box.scrollHeight;
+  return b;
+}
+document.getElementById('chat-inp').addEventListener('input', function(){
+  this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,100)+'px';
+  document.getElementById('send-btn').disabled = this.value.trim()==='';
+});
+document.getElementById('chat-inp').addEventListener('keydown', e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}
+});
+document.getElementById('send-btn').addEventListener('click', sendChat);
+async function sendChat() {
+  const inp=document.getElementById('chat-inp');
+  const txt=inp.value.trim(); if(!txt) return;
+  inp.value=''; inp.style.height='auto';
+  document.getElementById('send-btn').disabled=true;
+  addChat('u',txt); chatHist.push({role:'user',content:txt});
+  const tb=addChat('a',''); tb.innerHTML='<span class="dots"><span></span><span></span><span></span></span>';
+  try {
+    const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MDL,max_tokens:350,system:sysPrompt(),messages:chatHist})});
+    const data=await res.json();
+    const reply=data.content?.[0]?.text||'Try again!';
+    chatHist.push({role:'assistant',content:reply});
+    tb.textContent=reply; speak(reply);
+  } catch(e){tb.textContent='Connection error. Try again.';}
+}
+
+// ── MIC ──
+let recognition=null, listening=false;
+document.getElementById('mic-btn').addEventListener('click', ()=>{
+  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){alert('Speech not supported. Use Chrome on Android or Safari on iPhone.');return;}
+  if(listening){recognition?.stop();return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR(); recognition.lang='en-US'; recognition.interimResults=false;
+  recognition.onstart=()=>{listening=true;document.getElementById('mic-btn').classList.add('live');document.getElementById('mic-btn').textContent='⏹';};
+  recognition.onresult=e=>{document.getElementById('chat-inp').value=e.results[0][0].transcript;sendChat();};
+  recognition.onerror=recognition.onend=()=>{listening=false;document.getElementById('mic-btn').classList.remove('live');document.getElementById('mic-btn').textContent='🎤';};
+  recognition.start();
+});
+
+// ── PLAN ──
+async function loadPlan() {
+  planDone=true;
+  const g={lose_weight:'lose weight',build_muscle:'build muscle',get_fit:'get fit and healthy',beginner:'start fitness as a complete beginner'};
+  const lv={not_active:'complete beginner',some:'lightly active',moderate:'moderately active'};
+  const loc={gym:'at the gym (full equipment)',home:'at home (bodyweight)',both:'gym and home'};
+  try {
+    const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MDL,max_tokens:700,messages:[{role:'user',content:`Create a 7-day workout plan for someone who wants to ${g[profile.goal]||'get fit'}, is ${lv[profile.level]||'a beginner'}, and trains ${loc[profile.location]||'at the gym'}. Format: Day 1: Name - exercises with sets/reps. Keep it simple and beginner-friendly.`}]})});
+    const data=await res.json();
+    const txt=data.content?.[0]?.text||'Could not generate plan.';
+    document.getElementById('plan-load').remove();
+    const body=document.getElementById('plan-body');
+    txt.split('\n').filter(l=>l.trim()).forEach(line=>{
+      if(/^Day \d|^Rest/i.test(line)){
+        const d=document.createElement('div'); d.className='plan-day';
+        const h=document.createElement('h3'); h.textContent=line.split(':')[0];
+        const p=document.createElement('p'); p.textContent=line.includes(':')?line.split(':').slice(1).join(':').trim():line;
+        d.appendChild(h); d.appendChild(p); body.appendChild(d);
+      }
+    });
+  } catch(e){document.getElementById('plan-load').textContent='Could not load plan. Check connection.';}
+}
+
+// ── INIT ──
+const saved=localStorage.getItem('ca_profile');
+if(saved){profile=JSON.parse(saved);document.getElementById('bnav').classList.add('show');show('main');}
+</script>
+</body>
+</html>
