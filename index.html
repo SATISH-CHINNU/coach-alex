@@ -139,6 +139,18 @@
   #chat-send { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); border: none; color: #fff; font-size: 18px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
   #chat-send:active { transform: scale(0.93); }
   #chat-send:disabled { opacity: 0.4; }
+  #mic-btn { width: 44px; height: 44px; border-radius: 50%; background: var(--surface2); border: 1.5px solid var(--border); color: var(--text2); font-size: 18px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  #mic-btn.listening { background: var(--red); border-color: var(--red); color: #fff; animation: pulse 1s infinite; }
+  #mic-btn:active { transform: scale(0.93); }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+  #voice-toggle { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  #voice-toggle span { font-size: 13px; color: var(--text2); flex: 1; }
+  .toggle-sw { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .toggle-sw input { opacity: 0; width: 0; height: 0; }
+  .toggle-sw .slider { position: absolute; inset: 0; background: var(--surface2); border-radius: 24px; cursor: pointer; transition: 0.2s; border: 1px solid var(--border); }
+  .toggle-sw .slider:before { content:''; position:absolute; width:18px;height:18px;left:2px;top:2px;background:#fff;border-radius:50%;transition:0.2s; }
+  .toggle-sw input:checked + .slider { background: var(--accent); border-color: var(--accent); }
+  .toggle-sw input:checked + .slider:before { transform: translateX(18px); }
 
   /* WORKOUT PLAN SCREEN */
   #plan-screen { background: var(--bg); }
@@ -317,9 +329,14 @@
       <p>Ask me anything about fitness</p>
     </div>
   </div>
+  <div id="voice-toggle">
+    <span>🔊 Coach Alex speaks feedback</span>
+    <label class="toggle-sw"><input type="checkbox" id="voice-on" checked><span class="slider"></span></label>
+  </div>
   <div id="chat-msgs"></div>
   <div id="chat-input-row">
-    <textarea id="chat-input" placeholder="Ask Coach Alex..." rows="1"></textarea>
+    <textarea id="chat-input" placeholder="Ask Coach Alex or tap mic..." rows="1"></textarea>
+    <button id="mic-btn" onclick="toggleMic()" title="Speak to Coach Alex">🎤</button>
     <button id="chat-send" onclick="sendChat()">↑</button>
   </div>
 </div>
@@ -508,6 +525,7 @@ function addFb(type, text) {
   d.textContent=text;
   box.appendChild(d);
   box.scrollTop=box.scrollHeight;
+  if (type === 'coach') speak(text.replace('💪 ', ''));
 }
 
 async function analyzeForm() {
@@ -575,8 +593,9 @@ function getSystemPrompt() {
 function initChat() {
   if (chatInited) return;
   chatInited=true;
-  const greeting=`Hey! I am Coach Alex 💪 I have your profile — you want to ${({lose_weight:'lose weight',build_muscle:'build muscle',get_fit:'get fit',beginner:'start your fitness journey'})[userProfile.goal]||'get fit'} and you are training ${({gym:'at the gym',home:'at home',both:'at both gym and home'})[userProfile.location]||'at the gym'}.\n\nAsk me anything — form tips, nutrition, workout advice, or just where to start!`;
+  const greeting=`Hey! I am Coach Alex. I have your profile — you want to ${({lose_weight:'lose weight',build_muscle:'build muscle',get_fit:'get fit',beginner:'start your fitness journey'})[userProfile.goal]||'get fit'} and you are training ${({gym:'at the gym',home:'at home',both:'at both gym and home'})[userProfile.location]||'at the gym'}.\n\nAsk me anything — form tips, nutrition, workout advice, or just where to start!`;
   addChatMsg('ai', greeting);
+  speak(greeting);
 }
 
 function addChatMsg(role, text) {
@@ -604,6 +623,7 @@ async function sendChat() {
     const reply=data.content?.[0]?.text||'Sorry, try again!';
     chatHistory.push({role:'assistant',content:reply});
     typingBubble.textContent=reply;
+    speak(reply);
   } catch(e) { typingBubble.textContent='Connection error. Try again.'; }
   document.getElementById('chat-send').disabled=false;
   document.getElementById('chat-msgs').scrollTop=9999;
@@ -639,7 +659,41 @@ Format as: Day 1: [name] - [3-4 exercises with sets/reps]. Keep it beginner-frie
   } catch(e) { document.getElementById('plan-loading').textContent='Could not load plan. Check connection.'; }
 }
 
-document.getElementById('chat-input').addEventListener('keydown',e=>{
+function speak(text) {
+  if (!document.getElementById('voice-on')?.checked) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text.replace(/[💪🔥⚡🌱🛋️🚶🏋️🏢🏡🔄🎯🏃🏠]/g, ''));
+  utt.rate = 1.05;
+  utt.pitch = 1;
+  utt.volume = 1;
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => v.name.includes('Samantha') || v.name.includes('Daniel') || v.name.includes('Alex') || (v.lang === 'en-US' && v.localService));
+  if (preferred) utt.voice = preferred;
+  window.speechSynthesis.speak(utt);
+}
+
+let recognition = null;
+let isListening = false;
+function toggleMic() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('Speech recognition not supported on this browser. Try Chrome on Android or Safari on iPhone.');
+    return;
+  }
+  if (isListening) { recognition?.stop(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.onstart = () => { isListening = true; document.getElementById('mic-btn').classList.add('listening'); document.getElementById('mic-btn').textContent = '⏹'; };
+  recognition.onresult = e => { const t = e.results[0][0].transcript; document.getElementById('chat-input').value = t; sendChat(); };
+  recognition.onerror = () => { isListening = false; document.getElementById('mic-btn').classList.remove('listening'); document.getElementById('mic-btn').textContent = '🎤'; };
+  recognition.onend = () => { isListening = false; document.getElementById('mic-btn').classList.remove('listening'); document.getElementById('mic-btn').textContent = '🎤'; };
+  recognition.start();
+}
+
+window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+
   if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}
 });
 document.getElementById('chat-input').addEventListener('input',function(){
